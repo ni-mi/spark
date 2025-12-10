@@ -306,6 +306,7 @@ object SparkBuild extends PomBuild {
       "gcs-maven-central-mirror" at "https://maven-central.storage-download.googleapis.com/maven2/",
       "jitpack" at "https://jitpack.io",
       DefaultMavenRepository,
+      ("confluent" at "https://packages.confluent.io/maven/"),
       Resolver.mavenLocal,
       Resolver.file("ivyLocal", file(Path.userHome.absolutePath + "/.ivy2/local"))(Resolver.ivyStylePatterns)
     ),
