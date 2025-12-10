@@ -3133,7 +3133,7 @@ abstract class AvroSuite
   }
 
   test("SPARK-40667: validate Avro Options") {
-    assert(AvroOptions.getAllOptions.size == 12)
+    assert(AvroOptions.getAllOptions.size == 16)
     // Please add validation on any new Avro options here
     assert(AvroOptions.isValidOption("ignoreExtension"))
     assert(AvroOptions.isValidOption("mode"))
@@ -3147,6 +3147,10 @@ abstract class AvroSuite
     assert(AvroOptions.isValidOption("enableStableIdentifiersForUnionType"))
     assert(AvroOptions.isValidOption("stableIdentifierPrefixForUnionType"))
     assert(AvroOptions.isValidOption("recursiveFieldMaxDepth"))
+    assert(AvroOptions.isValidOption("useConfluentSchemaRegistry"))
+    assert(AvroOptions.isValidOption("schemaRegistryUrl"))
+    assert(AvroOptions.isValidOption("schemaSubjectName"))
+    assert(AvroOptions.isValidOption("schemaSubjectVersion"))
   }
 
   test("SPARK-53973: boolean Avro options reject non-boolean values") {

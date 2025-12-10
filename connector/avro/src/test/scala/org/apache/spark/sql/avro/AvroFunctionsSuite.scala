@@ -18,6 +18,7 @@
 package org.apache.spark.sql.avro
 
 import java.io.ByteArrayOutputStream
+import java.util.UUID
 
 import scala.jdk.CollectionConverters._
 
@@ -234,6 +235,33 @@ class AvroFunctionsSuite extends QueryTest with SharedSparkSession {
       functions.from_avro($"avro", avroTypeStruct)), df)
   }
 
+  test("roundtrip in to_avro and from_avro - with schema registry") {
+    val df = spark.range(10).select(struct($"id", $"id".cast("string").as("str")).as("struct"))
+    val avroTypeStruct = s"""
+                            |{
+                            |  "type": "record",
+                            |  "name": "struct",
+                            |  "fields": [
+                            |    {"name": "id", "type": "long"},
+                            |    {"name": "str", "type": ["null", "string"]}
+                            |  ]
+                            |}
+    """.stripMargin
+    val uuid = UUID.randomUUID().toString
+    val options = Map(AvroOptions.USE_CONFLUENT_SCHEMA_REGISTRY -> "true",
+      AvroOptions.SCHEMA_SUBJECT_NAME -> s"function-subject-test-$uuid",
+      AvroOptions.SCHEMA_REGISTRY_URL -> "https://mock-sr").asJava
+    val optionsWithoutSubjectName = Map(AvroOptions.USE_CONFLUENT_SCHEMA_REGISTRY -> "true",
+      AvroOptions.SCHEMA_REGISTRY_URL -> "https://mock-sr").asJava
+    val avroStructDF = df.select(functions.to_avro($"struct", avroTypeStruct, options).as("avro"))
+    // First run just the to_avro - so it will add the schema to schema registry
+    checkAnswer(avroStructDF.select(
+      functions.from_avro($"avro", avroTypeStruct, optionsWithoutSubjectName)), df)
+    // Now get the expected schema from schema registry
+    checkAnswer(avroStructDF.select(
+      functions.from_avro($"avro", avroTypeStruct, options)), df)
+  }
+
   test("to_avro optional union Avro schema") {
     val df = spark.range(10).select(struct($"id", $"id".cast("string").as("str")).as("struct"))
     for (supportedAvroType <- Seq("""["null", "int", "long"]""", """["int", "long"]""")) {
@@ -342,7 +370,7 @@ class AvroFunctionsSuite extends QueryTest with SharedSparkSession {
              |select to_avro(s, 42) as result from t
              |""".stripMargin)),
         condition = "DATATYPE_MISMATCH.TYPE_CHECK_FAILURE_WITH_HINT",
-        parameters = Map("sqlExpr" -> "\"to_avro(s, 42)\"",
+        parameters = Map("sqlExpr" -> "\"to_avro(s, 42, NULL)\"",
           "msg" -> ("The second argument of the TO_AVRO SQL function must be a constant string " +
             "containing the JSON representation of the schema to use for converting the value to " +
             "AVRO format"),

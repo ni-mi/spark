@@ -32,7 +32,7 @@ class SchemaRegistryManager (val avroOptions: AvroOptions) {
   private lazy val schemaRegistryClient: SchemaRegistryClient =
     if (avroOptions.useConfluentSchemaRegistry) {
       if (avroOptions.schemaRegistryUrl == "https://mock-sr") {
-        SchemaRegistryManager.getMockSchemaRegistryClient
+        SchemaRegistryManager.mockSchemaRegistryClient
       } else {
         new CachedSchemaRegistryClient(avroOptions.schemaRegistryUrl, 100)
       }
@@ -74,14 +74,9 @@ class SchemaRegistryManager (val avroOptions: AvroOptions) {
 
 }
 
-class MockSchemaRegistryClientThreadLocal extends ThreadLocal[SchemaRegistryClient]{
-  override def initialValue(): SchemaRegistryClient =
-    new MockSchemaRegistryClient().asInstanceOf[SchemaRegistryClient]
-}
 
 private object SchemaRegistryManager {
-  val mockSchemaRegistryClient = new MockSchemaRegistryClientThreadLocal
+  lazy val mockSchemaRegistryClient: SchemaRegistryClient =
+    new MockSchemaRegistryClient().asInstanceOf[SchemaRegistryClient]
 
-  private def getMockSchemaRegistryClient: SchemaRegistryClient =
-    mockSchemaRegistryClient.get()
 }
