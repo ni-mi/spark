@@ -87,7 +87,7 @@ org.apache.spark.sql.catalyst.ExtendedAnalysisException
     "objectName" : "",
     "startIndex" : 8,
     "stopIndex" : 21,
-    "fragment" : "to_avro(s, 42)"
+    "fragment" : "to_avro(s, 42, NULL)"
   } ]
 }
 
