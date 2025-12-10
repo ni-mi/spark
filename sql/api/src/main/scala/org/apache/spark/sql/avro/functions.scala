@@ -96,6 +96,25 @@ object functions {
   }
 
   /**
+   * Converts a column into binary of avro format.
+   *
+   * @param data
+   *   the data column.
+   * @param jsonFormatSchema
+   *   user-specified output avro schema in JSON string format.
+   * @param options
+   *   options to control how the Avro record is parsed.
+   *
+   * @since 4.2.0
+   */
+  @Experimental
+  def to_avro(data: Column,
+              jsonFormatSchema: String,
+              options: java.util.Map[String, String]): Column = {
+    Column.fnWithOptions("to_avro", options.asScala.iterator, data, lit(jsonFormatSchema))
+  }
+
+  /**
    * Returns schema in the DDL format of the avro schema in JSON string format.
    *
    * @param jsonFormatSchema

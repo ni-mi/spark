@@ -153,6 +153,19 @@ private[sql] class AvroOptions(
   val recursiveFieldMaxDepth: Int =
     parameters.get(RECURSIVE_FIELD_MAX_DEPTH).map(_.toInt).getOrElse(-1)
 
+  val schemaRegistryUrl: String =
+    parameters.getOrElse(SCHEMA_REGISTRY_URL, "")
+
+  val useConfluentSchemaRegistry: Boolean =
+    parameters.getOrElse(USE_CONFLUENT_SCHEMA_REGISTRY, "false").toBoolean &&
+      !schemaRegistryUrl.isBlank
+
+  val schemaSubjectName: Option[String] =
+    parameters.get(SCHEMA_SUBJECT_NAME)
+
+  val schemaSubjectVersion: String =
+    parameters.getOrElse(SCHEMA_SUBJECT_VERSION, "latest")
+
   if (recursiveFieldMaxDepth > RECURSIVE_FIELD_MAX_DEPTH_LIMIT) {
     throw QueryCompilationErrors.avroOptionsException(
       RECURSIVE_FIELD_MAX_DEPTH,
@@ -207,6 +220,10 @@ private[sql] object AvroOptions extends DataSourceOptions {
   val AVRO_SCHEMA = newOption("avroSchema")
   val AVRO_SCHEMA_URL = newOption("avroSchemaUrl")
   val RECORD_NAMESPACE = newOption("recordNamespace")
+  val USE_CONFLUENT_SCHEMA_REGISTRY = newOption("useConfluentSchemaRegistry")
+  val SCHEMA_REGISTRY_URL = newOption("schemaRegistryUrl")
+  val SCHEMA_SUBJECT_NAME = newOption("schemaSubjectName")
+  val SCHEMA_SUBJECT_VERSION = newOption("schemaSubjectVersion")
   val POSITIONAL_FIELD_MATCHING = newOption("positionalFieldMatching")
   // The option controls rebasing of the DATE and TIMESTAMP values between
   // Julian and Proleptic Gregorian calendars. It impacts on the behaviour of the Avro

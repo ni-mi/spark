@@ -19,6 +19,7 @@ package org.apache.spark.sql.avro
 
 import java.util
 import java.util.Set
+import java.util.UUID
 
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericRecordBuilder}
@@ -41,15 +42,36 @@ class AvroCatalystDataConversionSuite extends SparkFunSuite
   with SharedSparkSession
   with ExpressionEvalHelper {
 
+  private val MOCK_SR_URL: String = "https://mock-sr"
+
   private def roundTripTest(data: Literal): Unit = {
     val avroType = SchemaConverters.toAvroType(data.dataType, data.nullable)
     checkResult(data, avroType.toString, data.eval())
   }
 
-  private def checkResult(data: Literal, schema: String, expected: Any): Unit = {
+  private def checkResult(data: Literal,
+                          schema: String,
+                          expected: Any,
+                          skipSchemaRegistryTest: Boolean = false): Unit = {
     checkEvaluation(
       AvroDataToCatalyst(CatalystDataToAvro(data, None), schema, Map.empty),
       prepareExpectedResult(expected))
+    if (!skipSchemaRegistryTest) {
+      // Rerun test - with schema registry
+      val uuid = UUID.randomUUID().toString
+      val optionsNewSubject = Map(AvroOptions.SCHEMA_REGISTRY_URL -> MOCK_SR_URL,
+        AvroOptions.USE_CONFLUENT_SCHEMA_REGISTRY -> "true")
+      val optionsCreateSubject = Map(AvroOptions.SCHEMA_REGISTRY_URL -> MOCK_SR_URL,
+        AvroOptions.SCHEMA_SUBJECT_NAME -> s"subject-$uuid",
+        AvroOptions.USE_CONFLUENT_SCHEMA_REGISTRY -> "true")
+
+      checkEvaluation(
+        AvroDataToCatalyst(
+          CatalystDataToAvro(data, None, optionsCreateSubject),
+          schema,
+          optionsNewSubject),
+        prepareExpectedResult(expected))
+    }
   }
 
   protected def checkUnsupportedRead(data: Literal, schema: String): Unit = {
@@ -184,7 +206,7 @@ class AvroCatalystDataConversionSuite extends SparkFunSuite
 
     // When read string data as int, avro reader is not able to find the type mismatch and read
     // the string length as int value.
-    checkResult(data, avroTypeJson, 3)
+    checkResult(data, avroTypeJson, 3, true)
   }
 
   test("read float as double") {
@@ -213,7 +235,7 @@ class AvroCatalystDataConversionSuite extends SparkFunSuite
        """.stripMargin
 
     // avro reader reads the first 4 bytes of a double as a float, the result is totally undefined.
-    checkResult(data, avroTypeJson, 5.848603E35f)
+    checkResult(data, avroTypeJson, 5.848603E35f, true)
   }
 
   test("Handle unsupported input of record type") {
@@ -268,6 +290,53 @@ class AvroCatalystDataConversionSuite extends SparkFunSuite
           Some(jsonFormatSchema)),
         jsonFormatSchema,
         options = Map.empty),
+      data.eval())
+  }
+
+  test("user-specified output schema with schema registry") {
+    val data = Literal("SPADES")
+    val options = Map(AvroOptions.SCHEMA_REGISTRY_URL -> MOCK_SR_URL,
+      AvroOptions.SCHEMA_SUBJECT_NAME -> "specific-output-schema-subject",
+      AvroOptions.USE_CONFLUENT_SCHEMA_REGISTRY -> "true")
+    val optionsDontGetExpectedFromSR = Map(AvroOptions.SCHEMA_REGISTRY_URL -> MOCK_SR_URL,
+      AvroOptions.USE_CONFLUENT_SCHEMA_REGISTRY -> "true")
+    val jsonFormatSchema =
+      """
+        |{ "type": "enum",
+        |  "name": "Suit",
+        |  "symbols" : ["SPADES", "HEARTS", "DIAMONDS", "CLUBS"]
+        |}
+      """.stripMargin
+
+    val message = intercept[SparkException] {
+      AvroDataToCatalyst(
+        CatalystDataToAvro(
+          data,
+          None,
+          options),
+        jsonFormatSchema,
+        optionsDontGetExpectedFromSR).eval()
+    }.getMessage
+    assert(message.contains("Malformed records are detected in record parsing."))
+
+    checkEvaluation(
+      AvroDataToCatalyst(
+        CatalystDataToAvro(
+          data,
+          Some(jsonFormatSchema),
+          options),
+        jsonFormatSchema,
+        optionsDontGetExpectedFromSR),
+      data.eval())
+
+    checkEvaluation(
+      AvroDataToCatalyst(
+        CatalystDataToAvro(
+          data,
+          Some(jsonFormatSchema),
+          options),
+        jsonFormatSchema,
+        options),
       data.eval())
   }
 

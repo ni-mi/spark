@@ -78,6 +78,28 @@
       <groupId>org.tukaani</groupId>
       <artifactId>xz</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-schema-registry-client</artifactId>
+      <version>${confluentschemaregistry.version}</version>
+        <exclusions>
+            <exclusion>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+            </exclusion>
+        </exclusions>
+    </dependency>
+      <dependency>
+          <groupId>org.apache.kafka</groupId>
+          <artifactId>kafka-clients</artifactId>
+          <version>${kafka.version}</version>
+          <exclusions>
+              <exclusion>
+                  <groupId>org.lz4</groupId>
+                  <artifactId>lz4-java</artifactId>
+              </exclusion>
+          </exclusions>
+      </dependency>
   </dependencies>
   <build>
     <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>

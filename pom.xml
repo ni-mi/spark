@@ -139,6 +139,7 @@
     <hive.version>2.3.10</hive.version>
     <!-- note that this should be compatible with Kafka brokers version 0.10 and up -->
     <kafka.version>3.9.1</kafka.version>
+    <confluentschemaregistry.version>7.9.5</confluentschemaregistry.version>
     <!-- After 10.17.1.0, the minimum required version is JDK19 -->
     <derby.version>10.16.1.1</derby.version>
     <parquet.version>1.16.0</parquet.version>
@@ -374,6 +375,20 @@
       <id>central</id>
       <name>Maven Repository</name>
       <url>https://repo.maven.apache.org/maven2</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <!--
+        This is used for Confluent artifacts.
+      -->
+      <id>confluent-repository</id>
+      <name>Confluent Maven Repository</name>
+      <url>https://packages.confluent.io/maven</url>
       <releases>
         <enabled>true</enabled>
       </releases>

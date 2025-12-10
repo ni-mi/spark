@@ -36,6 +36,9 @@ case class AvroDataToCatalyst(
     options: Map[String, String])
   extends UnaryExpression with ExpectsInputTypes {
 
+  private val MAGIC_BYTE = 0x0
+  private val SCHEMA_ID_SIZE_IN_BYTES = 4
+
   override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType)
 
   override lazy val dataType: DataType = {
@@ -60,7 +63,31 @@ case class AvroDataToCatalyst(
   @transient private lazy val actualSchema =
     new Schema.Parser().setValidateDefaults(false).parse(jsonFormatSchema)
 
-  @transient private lazy val expectedSchema = avroOptions.schema.getOrElse(actualSchema)
+  private val shouldGetExpectedSchemaFromSchemaRegistry: Boolean =
+    avroOptions.useConfluentSchemaRegistry && avroOptions.schemaSubjectName.nonEmpty
+
+  @transient private lazy val expectedSchema =
+    if (shouldGetExpectedSchemaFromSchemaRegistry) {
+      maybeSchemaRegistryManager.get.getSchemaBySubjectAndVersion(
+        avroOptions.schemaSubjectName.get,
+        avroOptions.schemaSubjectVersion)
+    } else {
+      avroOptions.schema.getOrElse(actualSchema)
+    }
+
+  @transient private lazy val maybeSchemaRegistryManager =
+    if (avroOptions.useConfluentSchemaRegistry) {
+      Some(new SchemaRegistryManager(avroOptions))
+    } else {
+      None
+    }
+
+  @transient private lazy val maybeReadersManager =
+    if (avroOptions.useConfluentSchemaRegistry) {
+      Some(new ReadersManager(expectedSchema, maybeSchemaRegistryManager.get))
+    } else {
+      None
+    }
 
   @transient private lazy val reader = new GenericDatumReader[Any](actualSchema, expectedSchema)
 
@@ -103,8 +130,11 @@ case class AvroDataToCatalyst(
   override def nullSafeEval(input: Any): Any = {
     val binary = input.asInstanceOf[Array[Byte]]
     try {
-      decoder = DecoderFactory.get().binaryDecoder(binary, 0, binary.length, decoder)
-      result = reader.read(result, decoder)
+      val result = if (avroOptions.useConfluentSchemaRegistry) {
+        schemaRegistryAvroDecoder(binary)
+      } else {
+        plainAvroDecoder(binary)
+      }
       val deserialized = deserializer.deserialize(result)
       assert(deserialized.isDefined,
         "Avro deserializer cannot return an empty result because filters are not pushed down")
@@ -123,6 +153,37 @@ case class AvroDataToCatalyst(
           throw QueryCompilationErrors.parseModeUnsupportedError(
             prettyName, parseMode
           )
+      }
+    }
+  }
+
+  private def plainAvroDecoder(binary: Array[Byte]) = {
+    decoder = DecoderFactory.get().binaryDecoder(binary, 0, binary.length, decoder)
+    result = reader.read(result, decoder)
+    result
+  }
+
+  private def schemaRegistryAvroDecoder(binary: Array[Byte]) = {
+    if (binary == null) {
+      null
+    } else {
+      (maybeSchemaRegistryManager, maybeReadersManager) match {
+        case (Some(schemaRegistryManager), Some(readersManager)) =>
+          val buffer = java.nio.ByteBuffer.wrap(binary)
+          if (buffer.get() != MAGIC_BYTE) {
+            throw new IllegalStateException("Unknown magic byte!")
+          }
+          val schemaId = buffer.getInt()
+          val offset = buffer.position() + buffer.arrayOffset()
+          val length = buffer.limit() - 1 - SCHEMA_ID_SIZE_IN_BYTES
+          decoder = DecoderFactory.get().binaryDecoder(buffer.array(), offset, length, decoder)
+          val currentReader = readersManager.getReaderBySchemaId(schemaId)
+          result = reader.read(result, decoder)
+          result
+
+        case _ =>
+          throw new IllegalStateException(
+            "Schema Registry Manager and Readers Manager should be defined.")
       }
     }
   }

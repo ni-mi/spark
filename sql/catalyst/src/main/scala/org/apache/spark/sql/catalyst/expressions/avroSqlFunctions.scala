@@ -138,7 +138,7 @@ case class FromAvro(child: Expression, jsonFormatSchema: Expression, options: Ex
 // scalastyle:off line.size.limit
 @ExpressionDescription(
   usage = """
-    _FUNC_(child[, jsonFormatSchema]) - Converts a Catalyst binary input value into its
+    _FUNC_(child[, jsonFormatSchema, options]) - Converts a Catalyst binary input value into its
       corresponding Avro format result.
   """,
   examples = """
@@ -149,35 +149,56 @@ case class FromAvro(child: Expression, jsonFormatSchema: Expression, options: Ex
        [true]
   """,
   group = "misc_funcs",
-  since = "4.0.0"
+  since = "4.2.0"
 )
 // scalastyle:on line.size.limit
-case class ToAvro(child: Expression, jsonFormatSchema: Expression)
-  extends BinaryExpression with RuntimeReplaceable {
+case class ToAvro(child: Expression, jsonFormatSchema: Expression, options: Expression)
+  extends TernaryExpression with RuntimeReplaceable {
 
-  def this(child: Expression) = this(child, Literal(null))
+  override def first: Expression = child
+  override def second: Expression = jsonFormatSchema
+  override def third: Expression = options
 
-  override def left: Expression = child
+  def this(child: Expression) = this(child, Literal(null), Literal(null))
 
-  override def right: Expression = jsonFormatSchema
+  def this(child: Expression, jsonFormatSchema: Expression) =
+    this(child, jsonFormatSchema, Literal(null))
 
-  override def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Expression = {
-    copy(child = newLeft, jsonFormatSchema = newRight)
+
+
+  override def withNewChildrenInternal(newFirst: Expression,
+                                       newSecond: Expression,
+                                       newThird: Expression): Expression = {
+    copy(child = newFirst, jsonFormatSchema = newSecond, options = newThird)
   }
 
   override def checkInputDataTypes(): TypeCheckResult = {
-    jsonFormatSchema.dataType match {
+    val schemaCheck = jsonFormatSchema.dataType match {
       case _: StringType if jsonFormatSchema.foldable =>
-        TypeCheckResult.TypeCheckSuccess
+        None
       case _: NullType =>
         // The 'jsonFormatSchema' argument is optional.
-        TypeCheckResult.TypeCheckSuccess
+        None
       case _ =>
-        TypeCheckResult.TypeCheckFailure(
+        Some(TypeCheckResult.TypeCheckFailure(
           "The second argument of the TO_AVRO SQL function must be a constant string " +
             "containing the JSON representation of the schema to use for converting the value " +
-            "to AVRO format")
+            "to AVRO format"))
     }
+    val optionsCheck = options.dataType match {
+      case MapType(StringType, StringType, _) |
+           MapType(NullType, NullType, _) |
+           _: NullType
+        if options.foldable =>
+        None
+      case _ =>
+        Some(TypeCheckResult.TypeCheckFailure(
+          "The third argument of the FROM_AVRO SQL function must be a constant map of strings to " +
+            "strings containing the options to use for converting the value from AVRO format"))
+    }
+    schemaCheck.getOrElse(
+      optionsCheck.getOrElse(
+        TypeCheckResult.TypeCheckSuccess))
   }
 
   override lazy val replacement: Expression = {
@@ -187,13 +208,21 @@ case class ToAvro(child: Expression, jsonFormatSchema: Expression)
       case s: UTF8String =>
         Some(s.toString)
     }
+    val optionsValue: Map[String, String] = options.eval() match {
+      case a: ArrayBasedMapData if a.keyArray.array.nonEmpty =>
+        val keys: Array[String] = a.keyArray.array.map(_.toString)
+        val values: Array[String] = a.valueArray.array.map(_.toString)
+        keys.zip(values).toMap
+      case _ =>
+        Map.empty
+    }
     val constructor = try {
       Utils.classForName("org.apache.spark.sql.avro.CatalystDataToAvro").getConstructors().head
     } catch {
       case _: java.lang.ClassNotFoundException =>
         throw QueryCompilationErrors.avroNotLoadedSqlFunctionsUnusable(functionName = "TO_AVRO")
     }
-    val expr = constructor.newInstance(child, schemaValue)
+    val expr = constructor.newInstance(child, schemaValue, optionsValue)
     expr.asInstanceOf[Expression]
   }
 
