@@ -349,8 +349,21 @@ class SQLQueryTestSuite extends QueryTest with SharedSparkSession with SQLHelper
             schema = None,
             output = normalizeTestResults(output.mkString("\n")))
         case _ =>
-          val (schema, output) =
+          val (schema, output) = {
+            // scalastyle:off println
+            println(s"running SQL:$sql")
+            // scalastyle:on println
             handleExceptions(getNormalizedQueryExecutionResult(localSparkSession, sql))
+          }
+          // scalastyle:off println
+          println(
+            s"""Not normilized output is:
+               |
+               |${output.mkString("\n")}
+               |
+               |""".stripMargin)
+          // scalastyle:on println
+
           // We do some query canonicalization now.
           val executionOutput = ExecutionOutput(
             sql = sql,
@@ -681,6 +694,18 @@ class SQLQueryTestSuite extends QueryTest with SharedSparkSession with SQLHelper
         s"Schema did not match for query #$i\n${expected.sql}: $output") {
         output.schema
       }
+      // scalastyle:off println
+      println(
+        s"""Expected to get
+           |
+           |${expected.sql}
+           |
+           |But got:
+           |
+           |${output.output}""".stripMargin)
+
+      // scalastyle:on println
+
       assertResult(expected.output, s"Result did not match" +
         s" for query #$i\n${expected.sql}") {
         output.output
