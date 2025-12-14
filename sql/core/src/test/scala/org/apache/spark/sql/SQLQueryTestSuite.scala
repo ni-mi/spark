@@ -700,6 +700,8 @@ class SQLQueryTestSuite extends QueryTest with SharedSparkSession with SQLHelper
            |
            |${expected.sql}
            |
+           |${expected.output}
+           |
            |But got:
            |
            |${output.output}""".stripMargin)

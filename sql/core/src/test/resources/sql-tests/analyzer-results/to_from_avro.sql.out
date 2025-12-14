@@ -80,7 +80,7 @@ org.apache.spark.sql.catalyst.ExtendedAnalysisException
   "messageParameters" : {
     "hint" : "",
     "msg" : "The second argument of the TO_AVRO SQL function must be a constant string containing the JSON representation of the schema to use for converting the value to AVRO format",
-    "sqlExpr" : "\"to_avro(s, 42)\""
+    "sqlExpr" : "\"to_avro(s, 42, NULL)\""
   },
   "queryContext" : [ {
     "objectType" : "",

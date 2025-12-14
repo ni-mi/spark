@@ -108,9 +108,10 @@ object functions {
    * @since 4.2.0
    */
   @Experimental
-  def to_avro(data: Column,
-              jsonFormatSchema: String,
-              options: java.util.Map[String, String]): Column = {
+  def to_avro(
+      data: Column,
+      jsonFormatSchema: String,
+      options: java.util.Map[String, String]): Column = {
     Column.fnWithOptions("to_avro", options.asScala.iterator, data, lit(jsonFormatSchema))
   }
 
