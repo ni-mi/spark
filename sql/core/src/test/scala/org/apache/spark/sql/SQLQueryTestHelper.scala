@@ -24,7 +24,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NonFatal
 
 import org.apache.spark.{SparkException, SparkThrowable}
-import org.apache.spark.ErrorMessageFormat.PRETTY
+import org.apache.spark.ErrorMessageFormat.MINIMAL
 import org.apache.spark.SparkThrowableHelper.getMessage
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.IntegratedUDFTestUtils.{TestUDF, TestUDTFSet}
@@ -168,7 +168,7 @@ trait SQLQueryTestHelper extends SQLConfHelper with Logging {
    * @param result a function that returns a pair of schema and output
    */
   protected def handleExceptions(result: => (String, Seq[String])): (String, Seq[String]) = {
-    val format = PRETTY
+    val format = MINIMAL
     try {
       result
     } catch {
