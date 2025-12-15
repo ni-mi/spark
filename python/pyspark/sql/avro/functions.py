@@ -113,7 +113,9 @@ def from_avro(
 
 
 @try_remote_avro_functions
-def to_avro(data: "ColumnOrName", jsonFormatSchema: str = "", options: Optional[Dict[str, str]] = None) -> Column:
+def to_avro(
+    data: "ColumnOrName", jsonFormatSchema: str = "", options: Optional[Dict[str, str]] = None
+) -> Column:
     """
     Converts a column into binary of avro format.
 
@@ -171,10 +173,10 @@ def to_avro(data: "ColumnOrName", jsonFormatSchema: str = "", options: Optional[
         )
 
     if options is not None and not isinstance(options, dict):
-            raise PySparkTypeError(
-                errorClass="INVALID_TYPE",
-                messageParameters={"arg_name": "options", "arg_type": "dict, optional"},
-            )
+        raise PySparkTypeError(
+            errorClass="INVALID_TYPE",
+            messageParameters={"arg_name": "options", "arg_type": "dict, optional"},
+        )
 
     sc = get_active_spark_context()
     try:

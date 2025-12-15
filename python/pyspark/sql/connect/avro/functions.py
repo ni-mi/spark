@@ -67,7 +67,9 @@ def from_avro(
 from_avro.__doc__ = PyAvroFunctions.from_avro.__doc__
 
 
-def to_avro(data: "ColumnOrName", jsonFormatSchema: str = "", options: Optional[Dict[str, str]] = None) -> Column:
+def to_avro(
+    data: "ColumnOrName", jsonFormatSchema: str = "", options: Optional[Dict[str, str]] = None
+) -> Column:
     if not isinstance(data, (Column, str)):
         raise PySparkTypeError(
             errorClass="INVALID_TYPE",
@@ -91,10 +93,13 @@ def to_avro(data: "ColumnOrName", jsonFormatSchema: str = "", options: Optional[
     if jsonFormatSchema == "":
         return _invoke_function("to_avro", _to_col(data))
     elif options is None:
-
-        return _invoke_function("to_avro", _to_col(data), lit(jsonFormatSchema), _options_to_col({}))
+        return _invoke_function(
+            "to_avro", _to_col(data), lit(jsonFormatSchema), _options_to_col({})
+        )
     else:
-        return _invoke_function("to_avro", _to_col(data), lit(jsonFormatSchema), _options_to_col(options))
+        return _invoke_function(
+            "to_avro", _to_col(data), lit(jsonFormatSchema), _options_to_col(options)
+        )
 
 
 def _test() -> None:
