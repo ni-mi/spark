@@ -178,7 +178,7 @@ case class AvroDataToCatalyst(
           val length = buffer.limit() - 1 - SCHEMA_ID_SIZE_IN_BYTES
           decoder = DecoderFactory.get().binaryDecoder(buffer.array(), offset, length, decoder)
           val currentReader = readersManager.getReaderBySchemaId(schemaId)
-          result = reader.read(result, decoder)
+          result = currentReader.read(result, decoder)
           result
 
         case _ =>
