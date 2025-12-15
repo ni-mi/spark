@@ -349,6 +349,7 @@ class SQLQueryTestSuite extends QueryTest with SharedSparkSession with SQLHelper
             schema = None,
             output = normalizeTestResults(output.mkString("\n")))
         case _ =>
+          val (schema, output) = {
             handleExceptions(getNormalizedQueryExecutionResult(localSparkSession, sql))
           }
           // We do some query canonicalization now.
