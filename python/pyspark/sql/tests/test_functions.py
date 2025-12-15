@@ -2881,8 +2881,10 @@ class FunctionsTestsMixin:
             dummyDF.select(to_avro(wrong_type_value, "jsonSchema"))
         with self.assertRaises(PySparkTypeError) as pe5:
             dummyDF.select(to_avro("value", wrong_type_value))
-        to_avro_pes = [pe4, pe5]
-        for i in range(2):
+        with self.assertRaises(PySparkTypeError) as pe6:
+            dummyDF.select(to_avro("value", "jsonSchema", wrong_type_value))
+        to_avro_pes = [pe4, pe5, pe6]
+        for i in range(3):
             self.check_error(
                 exception=to_avro_pes[i].exception,
                 errorClass="INVALID_TYPE",

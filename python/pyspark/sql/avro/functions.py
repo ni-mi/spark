@@ -113,7 +113,7 @@ def from_avro(
 
 
 @try_remote_avro_functions
-def to_avro(data: "ColumnOrName", jsonFormatSchema: str = "") -> Column:
+def to_avro(data: "ColumnOrName", jsonFormatSchema: str = "", options: Optional[Dict[str, str]] = None) -> Column:
     """
     Converts a column into binary of avro format.
 
@@ -122,12 +122,17 @@ def to_avro(data: "ColumnOrName", jsonFormatSchema: str = "") -> Column:
     .. versionchanged:: 3.5.0
         Supports Spark Connect.
 
+    .. versionchanged:: 4.2.0
+            Support options.
+
     Parameters
     ----------
     data : :class:`~pyspark.sql.Column` or str
         the data column.
     jsonFormatSchema : str, optional
         user-specified output avro schema in JSON string format.
+    options : dict, optional
+            options to control how the Avro record is parsed.
 
     Notes
     -----
@@ -165,6 +170,12 @@ def to_avro(data: "ColumnOrName", jsonFormatSchema: str = "") -> Column:
             messageParameters={"arg_name": "jsonFormatSchema", "arg_type": "str"},
         )
 
+    if options is not None and not isinstance(options, dict):
+            raise PySparkTypeError(
+                errorClass="INVALID_TYPE",
+                messageParameters={"arg_name": "options", "arg_type": "dict, optional"},
+            )
+
     sc = get_active_spark_context()
     try:
         if jsonFormatSchema == "":
@@ -173,7 +184,7 @@ def to_avro(data: "ColumnOrName", jsonFormatSchema: str = "") -> Column:
             )
         else:
             jc = getattr(cast(JVMView, sc._jvm), "org.apache.spark.sql.avro.functions").to_avro(
-                _to_java_column(data), jsonFormatSchema
+                _to_java_column(data), jsonFormatSchema, options or {}
             )
     except TypeError as e:
         if str(e) == "'JavaPackage' object is not callable":
