@@ -99,7 +99,7 @@ Kafka key-value record will be augmented with some metadata, such as the ingesti
 {% highlight python %}
 from pyspark.sql.avro.functions import from_avro, to_avro
 
-# `from_avro` requires Avro schema in JSON string format.
+# `from_avro` requires Avro schema in JSON string format or setting the relevant options to read  the schema from schema registry.
 jsonFormatSchema = open("examples/src/main/resources/user.avsc", "r").read()
 
 df = spark\
@@ -131,7 +131,7 @@ query = output\
 {% highlight scala %}
 import org.apache.spark.sql.avro.functions._
 
-// `from_avro` requires Avro schema in JSON string format.
+// `from_avro` requires Avro schema in JSON string format or setting the relevant options to read  the schema from schema registry.
 val jsonFormatSchema = new String(Files.readAllBytes(Paths.get("./examples/src/main/resources/user.avsc")))
 
 val df = spark
@@ -164,7 +164,7 @@ val query = output
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.avro.functions.*;
 
-// `from_avro` requires Avro schema in JSON string format.
+// `from_avro` requires Avro schema in JSON string format or setting the relevant options to read  the schema from schema registry.
 String jsonFormatSchema = new String(Files.readAllBytes(Paths.get("./examples/src/main/resources/user.avsc")));
 
 Dataset<Row> df = spark
@@ -195,7 +195,7 @@ StreamingQuery query = output
 <div data-lang="r" markdown="1">
 {% highlight r %}
 
-# `from_avro` requires Avro schema in JSON string format.
+# `from_avro` requires Avro schema in JSON string format or setting the relevant options to read  the schema from schema registry.
 jsonFormatSchema <- paste0(readLines("examples/src/main/resources/user.avsc"), collapse=" ")
 
 df <- read.stream(
@@ -249,7 +249,7 @@ DROP TABLE t;
 
 Data source options of Avro can be set via:
  * the `.option` method on `DataFrameReader` or `DataFrameWriter`.
- * the `options` parameter in function `from_avro`.
+ * the `options` parameter in `from_avro` or `to_avro` functions.
 
 <table class="spark-config">
   <thead><tr><th>Property Name</th><th>Default</th><th>Meaning</th><th>Scope</th><th>Since Version</th></tr></thead>
