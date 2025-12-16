@@ -360,6 +360,46 @@ Data source options of Avro can be set via:
     <td>read</td>
     <td>4.0.0</td>
   </tr>
+
+
+  <tr>
+    <td><code>useConfluentSchemaRegistry</code></td>
+    <td>false</td>
+    <td>If this option is set to to <code>true</code>, and <code>schemaRegistryUrl</code> has a value:
+       <ul>
+        <li><code>from_avro</code> can work with schema registry to read avro records based on their avro schema that is encoded in the byte array itself. It can be used for the expected schema and various different (evolving) actual schemas</li> 
+        <li><code>to_avro</code> can work with schema registry to write the avro records based on their avro schema and encode the schema id in the byte array itself</li>
+       </ul>
+    </td>
+    <td>function <code>from_avro</code> and function <code>to_avro</code></td>
+    <td>4.2.0</td>
+  </tr>
+  <tr>
+    <td><code>schemaRegistryUrl</code></td>
+    <td>""</td>
+    <td>This option is the url of the schema registry that needs to be used. For instance: "https://my-schema-registry.com:8081"
+    </td>
+    <td>function <code>from_avro</code> and function <code>to_avro</code></td>
+    <td>4.2.0</td>
+  </tr>
+  <tr>
+    <td><code>schemaSubjectName</code></td>
+    <td>None</td>
+    <td>If set and the <code>useConfluentSchemaRegistry</code>code> is set to <code>true</code>, and <code>schemaRegistryUrl</code> has a value - the expected schema will be taken from Schema registry instead of the passed schema in the <code>from_avro</code> function.
+    </td>
+    <td>function <code>from_avro</code> and function <code>to_avro</code></td>
+    <td>4.2.0</td>
+  </tr>
+  <tr>
+    <td><code>schemaSubjectVersion</code></td>
+    <td>latest</td>
+    <td>This option is meant to use a specific version (<b>not id</b>) of the schema subject as the expected schema.
+    </td>
+    <td>function <code>from_avro</code></td>
+    <td>4.2.0</td>
+  </tr>
+
+  
 </table>
 
 ## Configuration
